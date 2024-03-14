@@ -6,21 +6,26 @@ class ProductBase(BaseModel):
     price: float
 
 class ProductCreate(ProductBase):
-    pass
+    seller_id: str
 
 class Product(ProductBase):  # This might be used for internal operations
-    id: int
-    seller_id: int
+    id: str
+    seller_id: str
 
     class Config:
         orm_mode = True
+        
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
 
 class ProductResponse(BaseModel):  # New class for product responses
-    id: int
+    id: str
     name: str
     description: str
     price: float
-    seller_id: int
+    seller: UserResponse
 
     class Config:
         orm_mode = True

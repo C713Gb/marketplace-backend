@@ -2,25 +2,23 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class TransactionBase(BaseModel):
-    product_id: int
-    quantity: int
+    product_id: str
 
-class TransactionCreate(TransactionBase):
-    pass
+class TransactionCreate(BaseModel):
+    bid_id: str
 
-class Transaction(TransactionBase):  # This might be used for internal operations or requests
-    id: int
-    buyer_id: int
+class Transaction(TransactionBase):
+    id: str  
+    buyer_id: str
+    seller_id: str
     timestamp: datetime
 
     class Config:
         orm_mode = True
 
-class TransactionResponse(BaseModel):  # New class for transaction responses
-    id: int
-    product_id: int
-    buyer_id: int
-    quantity: int
+class TransactionResponse(BaseModel):
+    id: str  
+    bid_id: str 
     timestamp: datetime
 
     class Config:

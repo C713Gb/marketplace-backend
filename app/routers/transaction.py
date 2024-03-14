@@ -1,26 +1,29 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from ..models.transaction import Transaction as TransactionModel
+from ..models.product import Product as ProductModel
+from ..models.bid import Bid as BidModel
+from ..models.user import User as UserModel
 from ..schemas.transaction_schema import TransactionCreate, TransactionResponse
+from ..core.security import get_current_user
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
-@router.post("/", response_model=TransactionResponse)
-def create_transaction(transaction: TransactionCreate):
-    try:
-        transaction_obj = TransactionModel(
-            buyer=transaction.buyer,
-            product=transaction.product,
-            quantity=transaction.quantity,
-            timestamp=transaction.timestamp  # Optional, defaults to current time if not provided
-        ).save()
-        return TransactionResponse(id=str(transaction_obj.id), buyer=transaction_obj.buyer, product=transaction_obj.product, quantity=transaction_obj.quantity, timestamp=transaction_obj.timestamp)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.post("/create", response_model=TransactionResponse)
+def create_transaction_from_bid(request_body: TransactionCreate, current_user: UserModel = Depends(get_current_user)):
+    bid_id = request_body.bid_id
+    bid = BidModel.objects(id=bid_id).first()
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    if str(bid.buyer.id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to purchase this product")
 
-@router.get("/{transaction_id}", response_model=TransactionResponse)
-def get_transaction(transaction_id: str):
-    transaction_obj = TransactionModel.objects(id=transaction_id).first()
-    if transaction_obj:
-        return TransactionResponse(id=str(transaction_obj.id), buyer=transaction_obj.buyer, product=transaction_obj.product, quantity=transaction_obj.quantity, timestamp=transaction_obj.timestamp)
-    else:
-        raise HTTPException(status_code=404, detail="Transaction not found")
+    # Create the transaction based on the bid
+    transaction_obj = TransactionModel(
+        bid=bid,
+    ).save()
+
+    return {
+        "id": str(transaction_obj.id),
+        "bid_id": str(bid_id),
+        "timestamp": transaction_obj.timestamp
+    }
